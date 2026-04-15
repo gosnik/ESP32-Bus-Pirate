@@ -1,46 +1,36 @@
-#if defined(DEVICE_TEMBEDS3) || defined(DEVICE_TEMBEDS3CC1101)
+#ifdef DEVICE_QTBITS
 
-#include "TembedDeviceView.h"
+#include "QtbitsDeviceView.h"
 #include "Data/WelcomeScreen.h"
 
-TembedDeviceView::TembedDeviceView() {
-  pinMode(PIN_POWER_ON, OUTPUT);
-  digitalWrite(PIN_POWER_ON, HIGH);
+QtbitsDeviceView::QtbitsDeviceView() {
+  pinMode(TFT_EN, OUTPUT);
+  digitalWrite(TFT_EN, HIGH);
 
-  pinMode(PIN_LCD_BL, OUTPUT);
-  digitalWrite(PIN_LCD_BL, HIGH);
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
 }
 
-SPIClass& TembedDeviceView::getSharedSpiInstance() {
-  #if defined(DEVICE_TEMBEDS3)
-    return sharedSpi;
-  #endif
-  return SPI;
+SPIClass& QtbitsDeviceView::getSharedSpiInstance() {
+  return sharedSpi;
 }
 
-void* TembedDeviceView::getScreen() {
-  return &tft; 
+void* QtbitsDeviceView::getScreen() {
+  return &tft;
 }
 
-void TembedDeviceView::initialize() {
-  pinMode(PIN_POWER_ON, OUTPUT);
-  digitalWrite(PIN_POWER_ON, HIGH);
+void QtbitsDeviceView::initialize() {
+  pinMode(TFT_EN, OUTPUT);
+  digitalWrite(TFT_EN, HIGH);
 
-  // Power some peripherals on the T-Embed CC1101 version
-  // IR, CC1101, audio, LEDS
-  #ifdef DEVICE_TEMBEDS3CC1101
-      pinMode(PIN_CC1101_POWER, OUTPUT);
-      digitalWrite(PIN_CC1101_POWER, HIGH);
-  #endif
-
-  screenSpi.begin(PIN_LCD_SCLK, PIN_LCD_MISO, PIN_LCD_MOSI, PIN_LCD_CS);
+  screenSpi.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, TFT_CS);
 
   tft.init();
-  tft.setRotation(PIN_LCD_ROTATION);
+  tft.setRotation(TFT_ROT);
   tft.setSwapBytes(true);
 
-  pinMode(PIN_LCD_BL, OUTPUT);
-  digitalWrite(PIN_LCD_BL, HIGH);
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
 
   setBrightness(brightnessPct);
 
@@ -48,32 +38,30 @@ void TembedDeviceView::initialize() {
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
 }
 
-void TembedDeviceView::logo() {
+void QtbitsDeviceView::logo() {
   clear();
 
-  // Logo
   tft.setSwapBytes(true);
   tft.pushImage(40, 30, WELCOME_IMAGE_WIDTH, WELCOME_IMAGE_HEIGHT, WelcomeScreen);
   tft.setSwapBytes(false);
 
-  // Sub
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   GlobalState& state = GlobalState::getInstance();
   auto version = "ESP32 Bus Pirate - " + state.getVersion();
   drawCenterText(version.c_str(), 130, 2);
 }
 
-void TembedDeviceView::welcome(TerminalTypeEnum& terminalType, std::string& terminalInfos) {
+void QtbitsDeviceView::welcome(TerminalTypeEnum& terminalType, std::string& terminalInfos) {
   if (terminalType == TerminalTypeEnum::WiFiClient) welcomeWeb(terminalInfos);
   else welcomeSerial(terminalInfos);
 }
 
-void TembedDeviceView::loading() {
+void QtbitsDeviceView::loading() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE);
   tft.setTextFont(1);
 
-  tft.fillRoundRect(20, 20, tft.width() - 40, tft.height() - 40, 5, DARK_GREY_RECT);
+  tft.fillRoundRect(20, 20, tft.width() - 40, tft.height() - 40, 5, QTBITS_DARK_GREY_RECT);
   tft.drawRoundRect(20, 20, tft.width() - 40, tft.height() - 40, 5, TFT_GREEN);
 
   tft.setTextColor(TFT_WHITE);
@@ -81,11 +69,11 @@ void TembedDeviceView::loading() {
   tft.drawString("Loading...", 102, 52);
 }
 
-void TembedDeviceView::clear() {
+void QtbitsDeviceView::clear() {
   tft.fillScreen(TFT_BLACK);
 }
 
-void TembedDeviceView::drawLogicTrace(uint8_t pin, const std::vector<uint8_t>& buffer, uint8_t step) {
+void QtbitsDeviceView::drawLogicTrace(uint8_t pin, const std::vector<uint8_t>& buffer, uint8_t step) {
   tft.fillRect(0, 35, tft.width(), tft.height() - 35, TFT_BLACK);
 
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -119,7 +107,7 @@ void TembedDeviceView::drawLogicTrace(uint8_t pin, const std::vector<uint8_t>& b
   }
 }
 
-void TembedDeviceView::drawAnalogicTrace(uint8_t pin, const std::vector<uint8_t>& buffer, uint8_t step) {
+void QtbitsDeviceView::drawAnalogicTrace(uint8_t pin, const std::vector<uint8_t>& buffer, uint8_t step) {
   tft.fillRect(0, 35, tft.width(), tft.height() - 35, TFT_BLACK);
 
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -142,7 +130,7 @@ void TembedDeviceView::drawAnalogicTrace(uint8_t pin, const std::vector<uint8_t>
   }
 }
 
-void TembedDeviceView::drawWaterfall(
+void QtbitsDeviceView::drawWaterfall(
     const std::string& title,
     float startValue,
     float endValue,
@@ -159,49 +147,38 @@ void TembedDeviceView::drawWaterfall(
   const int footerH = 12;
   const int graphY  = headerH;
   const int graphH  = H - headerH - footerH;
-
   const int barMaxPixels = midX - 2;
 
-  // Clamp level
   if (level < 0) level = 0;
   if (level > 100) level = 100;
   int barPixels = (level * barMaxPixels) / 100;
 
-  // First row: titles, labels
   if (rowIndex == 0) {
-    // Full clear
     tft.fillScreen(TFT_BLACK);
-
-    // Title
     tft.setTextSize(1);
     tft.setTextFont(1);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.setCursor(2, 2);
     tft.print(title.c_str());
 
-    // Format labels
     char bufStart[24];
     char bufEnd[24];
-
     if (unit && unit[0]) {
       snprintf(bufStart, sizeof(bufStart), "%.2f%s", startValue, unit);
-      snprintf(bufEnd,   sizeof(bufEnd),   "%.2f%s", endValue,   unit);
+      snprintf(bufEnd, sizeof(bufEnd), "%.2f%s", endValue, unit);
     } else {
       snprintf(bufStart, sizeof(bufStart), "%.2f", startValue);
-      snprintf(bufEnd,   sizeof(bufEnd),   "%.2f", endValue);
+      snprintf(bufEnd, sizeof(bufEnd), "%.2f", endValue);
     }
 
-    // Start label (top right)
     int wStart = tft.textWidth(bufStart);
     tft.setCursor(W - wStart - 2, 2);
     tft.print(bufStart);
 
-    // End label (bottom right)
     int wEnd = tft.textWidth(bufEnd);
     tft.setCursor(W - wEnd - 2, H - footerH + 2);
     tft.print(bufEnd);
 
-    // Graph area
     tft.fillRect(0, graphY, W, graphH, TFT_BLACK);
     tft.drawFastVLine(midX, graphY, graphH, TFT_DARKGREY);
   }
@@ -210,203 +187,146 @@ void TembedDeviceView::drawWaterfall(
   if (rowIndex < 0) rowIndex = 0;
   if (rowIndex > rowCount - 1) rowIndex = rowCount - 1;
 
-  // Map row to Y
   int y = graphY + (int)((int64_t)rowIndex * (graphH - 1) / (rowCount - 1));
-
-  // Clear this row only
   tft.drawFastHLine(0, y, W, TFT_BLACK);
-
-  // Restore center pixel
   tft.drawPixel(midX, y, TFT_DARKGREY);
 
-  // Draw energy bar
   if (barPixels > 0) {
     int x0 = midX - barPixels;
-    int w  = barPixels * 2;
-
-    if (x0 < 0) { w += x0; x0 = 0; }
-    if (x0 + w > W) w = W - x0;
-
+    int w = barPixels * 2;
     if (w > 0) {
       tft.drawFastHLine(x0, y, w, TFT_GREEN);
     }
   }
 }
 
-void TembedDeviceView::setRotation(uint8_t rotation) {
+void QtbitsDeviceView::setRotation(uint8_t rotation) {
   tft.setRotation(rotation);
 }
 
-void TembedDeviceView::setBrightness(uint8_t brightness) {
-  if (brightness > 100) brightness = 100;
+void QtbitsDeviceView::setBrightness(uint8_t brightness) {
   brightnessPct = brightness;
-
-  uint8_t pwm = (uint8_t)((brightnessPct * 255) / 100);
-  tft.setBrightness(pwm);
+  uint8_t pwm = map(brightnessPct, 0, 100, 0, 255);
+  analogWrite(TFT_BL, pwm);
 }
 
-uint8_t TembedDeviceView::getBrightness() {
+uint8_t QtbitsDeviceView::getBrightness() {
   return brightnessPct;
 }
 
-void TembedDeviceView::topBar(const std::string& title, bool submenu, bool searchBar) {
-  (void)submenu;
-  (void)searchBar;
-
-  // Zone topbar
+void QtbitsDeviceView::topBar(const std::string& title, bool submenu, bool searchBar) {
   tft.fillRect(0, 0, tft.width(), 30, TFT_BLACK);
-
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setTextFont(2);
   tft.setTextSize(2);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString(title.c_str(), tft.width() / 2, 20);
-  tft.setTextDatum(TL_DATUM);
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setCursor(5, 8);
+
+  if (submenu) tft.print("< ");
+  tft.print(title.c_str());
+
+  if (searchBar) {
+    tft.drawRoundRect(tft.width() - 60, 6, 50, 18, 4, TFT_DARKGREY);
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.setCursor(tft.width() - 50, 11);
+    tft.print("Search");
+  }
 }
 
-void TembedDeviceView::horizontalSelection(
+void QtbitsDeviceView::horizontalSelection(
   const std::vector<std::string>& options,
   uint16_t selectedIndex,
   const std::string& description1,
   const std::string& description2
 ) {
-  const int originY = 30;
+  clear();
 
-  // Box option
-  const std::string& option = options[selectedIndex];
-  int boxX = 60;
-  int boxW = tft.width() - 120;
-  int boxY = originY + 45;
-  int boxH = 50;
+  int boxY = 50;
+  int boxH = 48;
+  int gap = 10;
   int corner = 8;
 
-  // Description 1
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextFont(2);
+  for (size_t i = 0; i < options.size(); ++i) {
+    int boxW = tft.textWidth(options[i].c_str()) + 30;
+    int totalW = boxW;
+    int boxX = (tft.width() - totalW) / 2;
+    int y = boxY + i * (boxH + gap);
+
+    uint16_t bg = (i == selectedIndex) ? QTBITS_DARK_GREY_RECT : TFT_BLACK;
+    uint16_t border = (i == selectedIndex) ? TFT_GREEN : TFT_DARKGREY;
+    tft.fillRoundRect(boxX, y, boxW, boxH, corner, bg);
+    tft.drawRoundRect(boxX, y, boxW, boxH, corner, border);
+
+    tft.setTextColor(TFT_WHITE, bg);
+    tft.setTextSize(2);
+    int tx = boxX + (boxW - tft.textWidth(options[i].c_str())) / 2;
+    int ty = y + (boxH - 16) / 2;
+    tft.drawString(options[i].c_str(), tx, ty);
+  }
+
   tft.setTextSize(1);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString(description1.c_str(), tft.width() / 2, originY + 26);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  drawCenterText(description1, 15, 1);
+  tft.setTextColor(TFT_WHITE, QTBITS_DARK_GREY_RECT);
+  drawCenterText(description2, tft.height() - 18, 1);
+}
 
-  // Description 2 
-  tft.setTextColor(DARK_GREY_RECT, TFT_BLACK);
-  tft.drawString("Long press button to shut down", tft.width() / 2, tft.height() - 20);
+void QtbitsDeviceView::drawCenterText(const std::string& text, int y, int fontSize) {
+  tft.setTextSize(fontSize);
+  int16_t x = (tft.width() - tft.textWidth(text.c_str())) / 2;
+  tft.drawString(text.c_str(), x, y);
+}
 
-  // Box background + border
-  tft.fillRoundRect(boxX, boxY, boxW, boxH, corner, DARK_GREY_RECT);
-  tft.drawRoundRect(boxX, boxY, boxW, boxH, corner, TFT_GREEN);
-
-  const int pad = 4;  
-  int innerX = boxX + pad;
-  int innerY = boxY + pad;
-  int innerW = boxW - (pad * 2);
-  int innerH = boxH - (pad * 2);
-  int innerCorner = corner - pad;
-  if (innerCorner < 0) innerCorner = 0;
-
-  // erase old text
-  tft.fillRoundRect(innerX, innerY, innerW, innerH, innerCorner, DARK_GREY_RECT);
-
-  // Option name
-  tft.setTextColor(TFT_WHITE, DARK_GREY_RECT);
-  tft.setTextFont(2);
+void QtbitsDeviceView::welcomeSerial(const std::string& baudStr) {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
 
-  int textW = tft.textWidth(option.c_str());
-  int textX = (tft.width() - textW) / 2;
-  int textH = tft.fontHeight();
-  int textY = boxY + (boxH - textH) / 2;
+  drawCenterText("Serial mode", 60, 2);
 
-  tft.setTextDatum(TL_DATUM);
-  tft.drawString(option.c_str(), textX, textY);
-
-  // Arrows
-  tft.setTextSize(1);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextFont(2);
-  tft.setCursor(35, boxY + 19);
-  tft.print("<");
-  tft.setCursor(tft.width() - 40, boxY + 19);
-  tft.print(">");
-}
-
-void TembedDeviceView::drawCenterText(const std::string& text, int y, int fontSize) {
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextFont(fontSize);
-  tft.drawString(text.c_str(), tft.width() / 2, y);
-  tft.setTextDatum(TL_DATUM);
-}
-
-void TembedDeviceView::welcomeSerial(const std::string& baudStr) {
-  tft.fillScreen(TFT_BLACK);
-
-  // Titre
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextFont(2);
-  tft.setTextSize(1);
-  tft.setTextDatum(TL_DATUM);
-  tft.setCursor(88, 35);
-  tft.println("Open Serial (USB COM)");
-
-  // Rect baudrate
-  tft.fillRoundRect(70, 60, 180, 40, 8, DARK_GREY_RECT);
   tft.drawRoundRect(70, 60, 180, 40, 8, TFT_GREEN);
-
-  // Texte baud
-  std::string baud = "Baudrate: " + baudStr;
-  int textW = tft.textWidth(baud.c_str());
-  tft.setTextColor(TFT_WHITE, DARK_GREY_RECT);
-  tft.setCursor((tft.width() - textW) / 2, 73);
-  tft.print(baud.c_str());
-
-  // Sub
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setCursor(80, 107);
-  tft.println("Then press a key to start");
-}
-
-void TembedDeviceView::welcomeWeb(const std::string& ipStr) {
-  tft.fillScreen(TFT_BLACK);
-
-  // Titre
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextFont(2);
   tft.setTextSize(1);
-  tft.setTextDatum(TL_DATUM);
-  tft.setCursor(82, 34);
-  tft.println("Open browser to connect");
+  drawCenterText("USB CDC ready", 72, 1);
 
-  // Rectangle IP
-  tft.fillRoundRect(60, 60, 200, 40, 8, DARK_GREY_RECT);
-  tft.drawRoundRect(60, 60, 200, 40, 8, TFT_GREEN);
+  tft.setTextColor(TFT_WHITE, QTBITS_DARK_GREY_RECT);
+  tft.fillRoundRect(55, 110, 210, 28, 6, QTBITS_DARK_GREY_RECT);
+  drawCenterText("Baud: " + baudStr, 118, 1);
 
-  // Texte IP
-  std::string ip = "http://" + ipStr;
-  int textW = tft.textWidth(ip.c_str());
-  tft.setTextColor(TFT_WHITE, DARK_GREY_RECT);
-  tft.setCursor((tft.width() - textW) / 2, 73);
-  tft.print(ip.c_str());
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  drawCenterText("Open a serial terminal to continue", 160, 1);
 }
 
-void TembedDeviceView::shutDown() {
-  tft.setRotation(3);
+void QtbitsDeviceView::welcomeWeb(const std::string& ipStr) {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextFont(2);
-  drawCenterText("Shutting down...", 80, 2);
-  delay(1000);
+  tft.setTextSize(2);
 
-  // backlight + power
-  digitalWrite(PIN_LCD_BL, LOW);
-  digitalWrite(PIN_POWER_ON, LOW);
+  drawCenterText("Wi-Fi mode", 60, 2);
+
+  tft.drawRoundRect(60, 60, 200, 40, 8, TFT_GREEN);
+  tft.setTextSize(1);
+  drawCenterText("Open in browser", 72, 1);
+
+  tft.setTextColor(TFT_WHITE, QTBITS_DARK_GREY_RECT);
+  tft.fillRoundRect(40, 110, 240, 28, 6, QTBITS_DARK_GREY_RECT);
+  drawCenterText(ipStr, 118, 1);
+
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  drawCenterText("Browse to the device IP", 160, 1);
 }
 
-void TembedDeviceView::show(PinoutConfig& config) {
+void QtbitsDeviceView::shutDown() {
   tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  drawCenterText("Shutting down...", 80, 2);
+  digitalWrite(TFT_BL, LOW);
+  digitalWrite(TFT_EN, LOW);
+}
 
+void QtbitsDeviceView::show(PinoutConfig& config) {
+  tft.fillScreen(TFT_BLACK);
   const auto& mappings = config.getMappings();
   auto mode = config.getMode();
 
-  // Mode name
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextFont(2);
   tft.setTextSize(1);
@@ -415,7 +335,6 @@ void TembedDeviceView::show(PinoutConfig& config) {
   tft.drawString(modeStr.c_str(), tft.width() / 2, 20);
   tft.setTextDatum(TL_DATUM);
 
-  // No mapping
   if (mappings.empty()) {
     const int frameX = 20;
     const int frameY = 45;
@@ -434,23 +353,19 @@ void TembedDeviceView::show(PinoutConfig& config) {
     return;
   }
 
-  // Mapping list
   int boxHeight = 24;
   int startY = 40;
-
   for (size_t i = 0; i < mappings.size(); ++i) {
     int y = startY + (int)i * (boxHeight + 4);
-
-    tft.fillRoundRect(20, y, tft.width() - 40, boxHeight, 6, DARK_GREY_RECT);
+    tft.fillRoundRect(20, y, tft.width() - 40, boxHeight, 6, QTBITS_DARK_GREY_RECT);
     tft.drawRoundRect(20, y, tft.width() - 40, boxHeight, 6, TFT_GREEN);
 
     tft.setTextFont(2);
     tft.setTextSize(1);
-    tft.setTextColor(TFT_WHITE, DARK_GREY_RECT);
+    tft.setTextColor(TFT_WHITE, QTBITS_DARK_GREY_RECT);
 
     int w = tft.textWidth(mappings[i].c_str());
     int textX = (tft.width() - w) / 2;
-
     tft.setCursor(textX, y + 5);
     tft.print(mappings[i].c_str());
   }

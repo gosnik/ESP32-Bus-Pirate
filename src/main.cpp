@@ -5,6 +5,7 @@
 #include <Views/WebTerminalView.h>
 #include <Views/NoScreenDeviceView.h>
 #include <Views/TembedDeviceView.h>
+#include <Views/QtbitsDeviceView.h>
 #include <Views/TdisplayDeviceView.h>
 #include <Views/CardputerTerminalView.h>
 #include <Views/CardputerDeviceView.h>
@@ -13,6 +14,7 @@
 #include <Inputs/StickInput.h>
 #include <Inputs/StampS3Input.h>
 #include <Inputs/TembedInput.h>
+#include <Inputs/QtbitsInput.h>
 #include <Inputs/TdisplayInput.h>
 #include <Inputs/S3DevKitInput.h>
 #include <Providers/DependencyProvider.h>
@@ -116,6 +118,13 @@ void setup() {
         // Setup the T-embed
         TembedDeviceView deviceView;
         TembedInput deviceInput;
+        deviceView.initialize();
+        deviceView.logo();
+        deviceInput.waitPress(3000);
+        deviceView.clear();
+    #elif defined(DEVICE_QTBITS)
+        QtbitsDeviceView deviceView;
+        QtbitsInput deviceInput;
         deviceView.initialize();
         deviceView.logo();
         deviceInput.waitPress(3000);

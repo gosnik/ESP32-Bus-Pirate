@@ -5,6 +5,7 @@
 #include <Vendors/StickWifiSetup.h>
 #include <Vendors/S3WifiSetup.h>
 #include <Vendors/TembedWifiSetup.h>
+#include <Vendors/QtbitsWifiSetup.h>
 #include <Vendors/TdisplayWifiSetup.h>
 #include <Interfaces/IDeviceView.h>
 #include <Interfaces/IInput.h>

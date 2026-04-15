@@ -14,6 +14,8 @@ std::string WifiTypeConfigurator::configure(TerminalTypeEnum& terminalType) {
         #elif defined(DEVICE_TEMBEDS3) || defined(DEVICE_TEMBEDS3CC1101)
             // Use this standalone setup for now
             setupTembedWifi(view); // endless loop until a valid WiFi is selected and connected
+        #elif defined(DEVICE_QTBITS)
+            setupQtbitsWifi(view);
         #elif defined(DEVICE_TDISPLAYS3)
             setupTdisplayWifi(view); // endless loop until a valid WiFi is selected and connected
         #else

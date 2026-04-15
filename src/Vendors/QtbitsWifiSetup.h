@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(DEVICE_TEMBEDS3) || defined(DEVICE_TEMBEDS3CC1101)
+#ifdef DEVICE_QTBITS
 
 #include <Arduino.h>
 #include <Inputs/InputKeys.h>
@@ -11,6 +11,6 @@
 
 #define DARK_GREY 0x4208
 
-bool setupTembedWifi(IDeviceView& view);
+bool setupQtbitsWifi(IDeviceView& view);
 
 #endif

@@ -8,28 +8,97 @@
 #include <Arduino.h>
 #include <LovyanGFX.hpp>
 
-#ifdef DEVICE_TEMBEDS3CC1101
-  // ===== User_Setup 214 (CC1101) =====
-  #define PIN_LCD_BL    21
-  #define PIN_LCD_MISO  10
-  #define PIN_LCD_MOSI  9
-  #define PIN_LCD_SCLK  11
-  #define PIN_LCD_CS    41
-  #define PIN_LCD_DC    16
-  #define PIN_LCD_RST   -1
-  #define PIN_CC1101_POWER 15
-#else
-  // ===== User_Setup 210 (Normal S3) =====
-  #define PIN_LCD_BL    15
-  #define PIN_LCD_MISO  -1
-  #define PIN_LCD_MOSI  11
-  #define PIN_LCD_SCLK  12
-  #define PIN_LCD_CS    10
-  #define PIN_LCD_DC    13
-  #define PIN_LCD_RST   9
+#ifndef PIN_LCD_BL
+  #ifdef TFT_BL
+    #define PIN_LCD_BL TFT_BL
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_BL 21
+  #else
+    #define PIN_LCD_BL 15
+  #endif
 #endif
 
-#define PIN_POWER_ON 46
+#ifndef PIN_LCD_MISO
+  #ifdef TFT_MISO
+    #define PIN_LCD_MISO TFT_MISO
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_MISO 10
+  #else
+    #define PIN_LCD_MISO -1
+  #endif
+#endif
+
+#ifndef PIN_LCD_MOSI
+  #ifdef TFT_MOSI
+    #define PIN_LCD_MOSI TFT_MOSI
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_MOSI 9
+  #else
+    #define PIN_LCD_MOSI 11
+  #endif
+#endif
+
+#ifndef PIN_LCD_SCLK
+  #ifdef TFT_SCLK
+    #define PIN_LCD_SCLK TFT_SCLK
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_SCLK 11
+  #else
+    #define PIN_LCD_SCLK 12
+  #endif
+#endif
+
+#ifndef PIN_LCD_CS
+  #ifdef TFT_CS
+    #define PIN_LCD_CS TFT_CS
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_CS 41
+  #else
+    #define PIN_LCD_CS 10
+  #endif
+#endif
+
+#ifndef PIN_LCD_DC
+  #ifdef TFT_DC
+    #define PIN_LCD_DC TFT_DC
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_DC 16
+  #else
+    #define PIN_LCD_DC 13
+  #endif
+#endif
+
+#ifndef PIN_LCD_RST
+  #ifdef TFT_RST
+    #define PIN_LCD_RST TFT_RST
+  #elif defined(DEVICE_TEMBEDS3CC1101)
+    #define PIN_LCD_RST -1
+  #else
+    #define PIN_LCD_RST 9
+  #endif
+#endif
+
+#ifndef PIN_CC1101_POWER
+  #ifdef DEVICE_TEMBEDS3CC1101
+    #define PIN_CC1101_POWER 15
+  #endif
+#endif
+
+#ifndef PIN_POWER_ON
+  #ifdef TFT_EN
+    #define PIN_POWER_ON TFT_EN
+  #else
+    #define PIN_POWER_ON 46
+  #endif
+#endif
+
+#ifndef PIN_LCD_ROTATION
+  #ifdef TFT_ROT
+    #define PIN_LCD_ROTATION TFT_ROT
+  #else
+    #define PIN_LCD_ROTATION 3
+  #endif
+#endif
 #define DARK_GREY_RECT 0x4208
 
 // Lovyan driver
@@ -125,7 +194,7 @@ private:
   uint8_t brightnessPct = 100;
   SPIClass screenSpi{HSPI}; // or FSPI
 
-  #ifdef DEVICE_TEMBEDS3
+  #if defined(DEVICE_TEMBEDS3)
   SPIClass sharedSpi{HSPI};
   #endif
 

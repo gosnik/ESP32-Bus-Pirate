@@ -1,57 +1,33 @@
-#if defined(DEVICE_TEMBEDS3) || defined(DEVICE_TEMBEDS3CC1101)
+#ifdef DEVICE_QTBITS
 
-#include "TembedWifiSetup.h"
+#include "QtbitsWifiSetup.h"
 
 #include <WiFi.h>
 #include <Preferences.h>
 #include <RotaryEncoder.h>
 #include <esp_sleep.h>
+#include <LovyanGFX.hpp>
 
 #include "Inputs/InputKeys.h"
-#include "Views/TembedDeviceView.h"
 
-// ---------------- GPIOs ----------------
-#ifndef TEMBED_PIN_ENCODE_A
-  #ifdef PIN_ENC_A
-    #define TEMBED_PIN_ENCODE_A PIN_ENC_A
-  #elif defined(DEVICE_TEMBEDS3CC1101)
-    #define TEMBED_PIN_ENCODE_A 4
-  #else
-    #define TEMBED_PIN_ENCODE_A 2
-  #endif
+#ifndef PIN_ENC_A
+  #define PIN_ENC_A 41
 #endif
-
-#ifndef TEMBED_PIN_ENCODE_B
-  #ifdef PIN_ENC_B
-    #define TEMBED_PIN_ENCODE_B PIN_ENC_B
-  #elif defined(DEVICE_TEMBEDS3CC1101)
-    #define TEMBED_PIN_ENCODE_B 5
-  #else
-    #define TEMBED_PIN_ENCODE_B 1
-  #endif
+#ifndef PIN_ENC_B
+  #define PIN_ENC_B 42
 #endif
-
-#ifndef TEMBED_PIN_SIDE_BTN
-  #ifdef PIN_SIDE_BTN
-    #define TEMBED_PIN_SIDE_BTN PIN_SIDE_BTN
-  #elif defined(DEVICE_TEMBEDS3CC1101)
-    #define TEMBED_PIN_SIDE_BTN 6
-  #else
-    #define TEMBED_PIN_SIDE_BTN 0
-  #endif
+#ifndef PIN_ENC_BTN
+  #define PIN_ENC_BTN 0
 #endif
-
-#ifndef TEMBED_PIN_ENCODE_BTN
-  #ifdef PIN_ENC_BTN
-    #define TEMBED_PIN_ENCODE_BTN PIN_ENC_BTN
-  #else
-    #define TEMBED_PIN_ENCODE_BTN 0
-  #endif
+#ifndef PIN_SIDE_BTN
+  #define PIN_SIDE_BTN 0
+#endif
+#ifndef TFT_ROT
+  #define TFT_ROT 3
 #endif
 
 static lgfx::LGFX_Device* g_tft = nullptr;
-
-static RotaryEncoder encoder(TEMBED_PIN_ENCODE_A, TEMBED_PIN_ENCODE_B, RotaryEncoder::LatchMode::TWO03);
+static RotaryEncoder encoder(PIN_ENC_A, PIN_ENC_B, RotaryEncoder::LatchMode::TWO03);
 
 static char lastInput = KEY_NONE;
 static int lastPos = 0;
@@ -76,17 +52,15 @@ static void drawShutdownScreen() {
 static void checkShutdownRequest() {
   if (!g_tft) return;
 
-  // long press side button or encoder button
-  if (!digitalRead(TEMBED_PIN_ENCODE_BTN) || !digitalRead(TEMBED_PIN_SIDE_BTN)) {
+  if (!digitalRead(PIN_ENC_BTN) || !digitalRead(PIN_SIDE_BTN)) {
     for (int i = 0; i < 30; ++i) {
-      if (digitalRead(TEMBED_PIN_ENCODE_BTN) && digitalRead(TEMBED_PIN_SIDE_BTN)) return;
+      if (digitalRead(PIN_ENC_BTN) && digitalRead(PIN_SIDE_BTN)) return;
       delay(100);
     }
 
     drawShutdownScreen();
-
     delay(3000);
-    esp_sleep_enable_ext0_wakeup((gpio_num_t)TEMBED_PIN_SIDE_BTN, 0);
+    esp_sleep_enable_ext0_wakeup((gpio_num_t)PIN_SIDE_BTN, 0);
     esp_deep_sleep_start();
   }
 }
@@ -101,10 +75,10 @@ static void tick() {
   } else if (pos > lastPos) {
     lastInput = KEY_ARROW_RIGHT;
     lastPos = pos;
-  } else if (!digitalRead(TEMBED_PIN_ENCODE_BTN) && !lastButton) {
+  } else if (!digitalRead(PIN_ENC_BTN) && !lastButton) {
     lastInput = KEY_OK;
     lastButton = true;
-  } else if (digitalRead(TEMBED_PIN_ENCODE_BTN)) {
+  } else if (digitalRead(PIN_ENC_BTN)) {
     lastButton = false;
   }
 
@@ -148,18 +122,13 @@ static void drawWifiBox(uint16_t borderColor, const String& msg1, const String& 
   auto& tft = *g_tft;
 
   tft.fillScreen(TFT_BLACK);
-
-  // Look proche de ton UI
-  tft.fillRoundRect(20, 20, tft.width() - 40, tft.height() - 40, 5, DARK_GREY_RECT);
+  tft.fillRoundRect(20, 20, tft.width() - 40, tft.height() - 40, 5, DARK_GREY);
   tft.drawRoundRect(20, 20, tft.width() - 40, tft.height() - 40, 5, borderColor);
-
   tft.setTextDatum(TL_DATUM);
-
   tft.setTextColor(TFT_WHITE);
   tft.setTextSize(textSize);
   tft.setTextFont(1);
   tft.drawString(msg1, 37, 45);
-
   tft.setTextSize(1);
   tft.setTextColor(TFT_LIGHTGREY);
   tft.drawString(msg2, 37, 70);
@@ -170,11 +139,9 @@ static String selectWifiNetwork() {
   auto& tft = *g_tft;
 
   int networksCount = 0;
-
   while (networksCount == 0) {
     drawWifiBox(TFT_GREEN, "Scanning WiFi...", "");
     networksCount = WiFi.scanNetworks();
-
     if (networksCount == 0) {
       drawWifiBox(TFT_RED, "No networks found", "Retrying...");
       delay(2000);
@@ -182,7 +149,6 @@ static String selectWifiNetwork() {
   }
 
   int selected = 0;
-
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_GREEN);
   tft.setTextSize(2);
@@ -191,12 +157,10 @@ static String selectWifiNetwork() {
 
   while (true) {
     tft.fillRect(0, 40, tft.width(), tft.height() - 40, TFT_BLACK);
-
     tft.setTextSize(1);
     tft.setTextFont(1);
 
     int shown = (networksCount < 5) ? networksCount : 5;
-
     for (int i = 0; i < shown; ++i) {
       String ssid = WiFi.SSID(i);
       if (i == selected) {
@@ -241,7 +205,6 @@ static String enterText(const String& label) {
 
   while (true) {
     char currentChar = charset[index];
-
     String alias;
     if (currentChar == '\x08') alias = "<-";
     else if (currentChar == '\x0D') alias = "OK";
@@ -251,14 +214,12 @@ static String enterText(const String& label) {
     String display = text + charDisplay;
 
     tft.fillRect(0, 50, tft.width(), tft.height() - 100, TFT_BLACK);
-
     tft.setTextSize(1);
     tft.setTextFont(1);
     tft.setTextColor(TFT_LIGHTGREY);
     tft.drawString(display, 10, 70);
 
     char key = handler();
-
     if (key == KEY_ARROW_RIGHT) {
       index = (index - 1 + charset.length()) % charset.length();
     } else if (key == KEY_ARROW_LEFT) {
@@ -275,33 +236,28 @@ static String enterText(const String& label) {
   }
 }
 
-// ---------------- Public entry ----------------
-bool setupTembedWifi(IDeviceView& view) {
-  // bind screen pointer once
+bool setupQtbitsWifi(IDeviceView& view) {
   g_tft = static_cast<lgfx::LGFX_Device*>(view.getScreen());
   if (!g_tft) return false;
 
-  // init GPIO / encoder
-  pinMode(TEMBED_PIN_ENCODE_BTN, INPUT_PULLUP);
-  pinMode(TEMBED_PIN_SIDE_BTN, INPUT_PULLUP);
-
+  pinMode(PIN_ENC_BTN, INPUT_PULLUP);
+  pinMode(PIN_SIDE_BTN, INPUT_PULLUP);
   encoder.setPosition(0);
   lastPos = 0;
   lastButton = false;
   lastInput = KEY_NONE;
 
   auto& tft = *g_tft;
-  tft.setRotation(3);
+  tft.setRotation(TFT_ROT);
 
   String selectedSsid, ssid, password;
-
   while (true) {
     selectedSsid = selectWifiNetwork();
     bool hasSavedCredentials = loadWifiCredentials(ssid, password);
-    
+
     if (!hasSavedCredentials || ssid != selectedSsid) {
-        ssid = selectedSsid;
-        password = enterText("Enter password for:\n" + selectedSsid);
+      ssid = selectedSsid;
+      password = enterText("Enter password for:\n" + selectedSsid);
     }
 
     drawWifiBox(TFT_GREEN, "Connecting", ssid);
@@ -310,7 +266,6 @@ bool setupTembedWifi(IDeviceView& view) {
 
     tft.setTextColor(TFT_LIGHTGREY);
     tft.setCursor(55, 100);
-
     for (int i = 0; i < 30; ++i) {
       if (WiFi.status() == WL_CONNECTED) {
         setWifiCredentials(ssid, password);
@@ -323,7 +278,7 @@ bool setupTembedWifi(IDeviceView& view) {
     }
 
     drawWifiBox(TFT_WHITE, "Failed to connect", "Retry or setup Wi-Fi with Serial");
-    setWifiCredentials("", ""); // reset
+    setWifiCredentials("", "");
     WiFi.disconnect(true);
     WiFi.mode(WIFI_STA);
     delay(3000);
